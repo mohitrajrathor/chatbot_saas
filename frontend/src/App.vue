@@ -1,8 +1,10 @@
 <script setup>
-import Home from "./pages/Home.vue"
-import { RouterView } from "vue-router";
+import Toast from 'primevue/toast'
 </script>
 
 <template>
-  <RouterView />
+  <div class="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <Toast position="bottom-right" />
+    <router-view />
+  </div>
 </template>

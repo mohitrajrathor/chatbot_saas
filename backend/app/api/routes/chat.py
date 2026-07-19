@@ -8,10 +8,15 @@ from app.api.deps import get_db, get_chatbot_from_api_key
 from app.core.security import decode_token
 from app.models.user import User
 from app.models.chatbot import Chatbot
-from app.schemas.chat import ChatQueryRequest, ChatResponse, ChatSource
+from app.schemas.chat import ChatRequest, ChatResponse, ChatSource
 from app.services.rag.retriever import retrieve
 from app.services.rag.prompt_builder import build_prompt
 from app.services.rag.llm_provider import get_llm_provider
+from app.services.guardrails.classifier import (
+    get_guardrails_classifier,
+    UNSAFE_INPUT_MESSAGE,
+    UNSAFE_OUTPUT_MESSAGE,
+)
 
 router = APIRouter()
 
@@ -21,6 +26,11 @@ async def _execute_rag_pipeline(
     chatbot: Chatbot,
     message: str
 ) -> ChatResponse:
+    # 0. Input Guardrail Check
+    classifier = get_guardrails_classifier()
+    if not classifier.is_safe(message):
+        return ChatResponse(answer=UNSAFE_INPUT_MESSAGE, sources=[])
+
     # 1. Retrieve top-k context chunks
     chunks = await retrieve(db, query_text=message, chatbot_id=chatbot.id)
 
@@ -35,7 +45,11 @@ async def _execute_rag_pipeline(
     llm = get_llm_provider()
     answer = await llm.complete(prompt=user_prompt, system_instruction=system_prompt)
 
-    # 4. Format sources
+    # 4. Output Guardrail Check
+    if not classifier.is_safe(answer):
+        return ChatResponse(answer=UNSAFE_OUTPUT_MESSAGE, sources=[])
+
+    # 5. Format sources
     sources = [
         ChatSource(
             content=c.get("content", ""),
@@ -51,7 +65,7 @@ async def _execute_rag_pipeline(
 @router.post("/{chatbot_id}", response_model=ChatResponse)
 async def chat_with_api_key(
     chatbot_id: uuid.UUID,
-    body: ChatQueryRequest,
+    body: ChatRequest,
     chatbot: Chatbot = Depends(get_chatbot_from_api_key),
     db: AsyncSession = Depends(get_db)
 ) -> ChatResponse:
@@ -72,7 +86,7 @@ async def chat_with_api_key(
 @router.post("/web/{chatbot_id}", response_model=ChatResponse)
 async def chat_web_widget(
     chatbot_id: uuid.UUID,
-    body: ChatQueryRequest,
+    body: ChatRequest,
     authorization: Optional[str] = Header(default=None),
     db: AsyncSession = Depends(get_db)
 ) -> ChatResponse:

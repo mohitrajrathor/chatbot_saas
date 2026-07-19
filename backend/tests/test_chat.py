@@ -1,5 +1,5 @@
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import AsyncClient, ASGITransport
 from app.main import app
@@ -59,11 +59,15 @@ async def test_chat_api_key_and_web_flow():
         db.add(api_key_obj)
         await db.commit()
 
-        # Mock LLM provider completion
+        # Mock LLM provider & guardrails classifier
         mock_llm = AsyncMock()
         mock_llm.complete.return_value = "Python is a high-level programming language."
 
-        with patch("app.api.routes.chat.get_llm_provider", return_value=mock_llm):
+        mock_classifier = MagicMock()
+        mock_classifier.is_safe.return_value = True
+
+        with patch("app.api.routes.chat.get_llm_provider", return_value=mock_llm), \
+             patch("app.api.routes.chat.get_guardrails_classifier", return_value=mock_classifier):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 # 1. Chat via API key
                 key_headers = {"Authorization": f"Bearer {plaintext_key}"}
@@ -106,7 +110,11 @@ async def test_restricted_chatbot_access_control():
         mock_llm = AsyncMock()
         mock_llm.complete.return_value = "Restricted answer"
 
-        with patch("app.api.routes.chat.get_llm_provider", return_value=mock_llm):
+        mock_classifier = MagicMock()
+        mock_classifier.is_safe.return_value = True
+
+        with patch("app.api.routes.chat.get_llm_provider", return_value=mock_llm), \
+             patch("app.api.routes.chat.get_guardrails_classifier", return_value=mock_classifier):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 # Unauthorized request (no token) -> 401
                 unauth_res = await ac.post(f"/api/v1/chat/web/{chatbot.id}", json={"message": "Hi"})

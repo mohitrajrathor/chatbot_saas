@@ -20,9 +20,6 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(
         default="postgresql+asyncpg://postgres:postgres@localhost:5432/chatbot_saas"
     )
-    SYNC_DATABASE_URL: str = Field(
-        default="postgresql+psycopg2://postgres:postgres@localhost:5432/chatbot_saas"
-    )
 
     # Redis Settings
     REDIS_URL: str = Field(default="redis://localhost:6379/0")

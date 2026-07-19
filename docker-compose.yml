@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: chatbot_saas
     ports:
-      - "5432:5432"
+      - "5555:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -39,8 +39,6 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/chatbot_saas
-      - ASYNC_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/chatbot_saas
-      - SYNC_DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/chatbot_saas
       - REDIS_URL=redis://redis:6379/0
     ports:
       - "8000:8000"
@@ -64,13 +62,11 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/chatbot_saas
-      - ASYNC_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/chatbot_saas
-      - SYNC_DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/chatbot_saas
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
       - hf_cache:/root/.cache/huggingface
-    command: celery -A app.tasks.celery_app worker --loglevel=info
+    command: python -m celery -A app.tasks.celery_app worker --loglevel=info
     depends_on:
       postgres:
         condition: service_healthy

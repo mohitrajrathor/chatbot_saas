@@ -25,3 +25,18 @@ class EvalResultResponse(BaseModel):
     context_precision: float | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EvalRunDetailResponse(BaseModel):
+    id: uuid.UUID
+    chatbot_id: uuid.UUID
+    status: str
+    created_at: datetime
+    completed_at: datetime | None = None
+    average_faithfulness: float | None = None
+    average_answer_relevancy: float | None = None
+    average_context_recall: float | None = None
+    average_context_precision: float | None = None
+    results: list[EvalResultResponse] = []
+
+    model_config = ConfigDict(from_attributes=True)
