@@ -1,7 +1,7 @@
 langchain
 langchain-ollama
 langchain-aws
-fastapi[standard]
+fastapi[all]
 python-dotenv
 sqlalchemy
 uvicorn
@@ -10,4 +10,4 @@ langchain-community
 langchain-core
 psycopg2
 psycopg2-binary
-
+SQLModel
